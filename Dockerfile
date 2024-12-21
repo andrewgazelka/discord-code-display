@@ -1,24 +1,20 @@
-# Start from a minimal Python environment
-FROM python:3.12-slim
+FROM nixos/nix:2.16.1
 
-# Create the working directory inside the container
+# Create a working directory
 WORKDIR /app
 
-# Copy in just the files needed to install dependencies first
+# Copy your Nix configuration or default.nix (if you’re using flakes, copy flake.nix)
+COPY flake.nix .
 COPY pyproject.toml uv.lock ./
 
-# Install uv itself
-RUN pip install --no-cache-dir uv
+# Install dependencies with Nix
+RUN nix build .#devShellPackages -o /result
+# Or if you use default.nix instead of a flake, something like:
+# RUN nix-build --attr yourAttribute -o /result
 
-# Use uv to pip-install the dependencies
-# This ensures they're installed in a way that Python can find them
-RUN uv pip install --system .
+# Activate the environment:
+ENV PATH=/result/bin:$PATH
 
-# Now copy in the rest of your app's source code
 COPY . .
 
-# (Optional) Expose a port if you're running a web server
-# EXPOSE 8000
-
-# Finally, define the command that starts your app
 CMD ["python", "hello.py"]
